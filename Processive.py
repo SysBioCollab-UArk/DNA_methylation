@@ -64,7 +64,7 @@ Parameter('koff', 100)
 
 Rule('DNMT1_binds_H', DNMT1(h=None, sam=None) + H(dnmt1=None) | DNMT1(h=1, sam=None) % H(dnmt1=1), kf1, kr1)
 Rule('SAM_binds_DNMT1_H', SAM(dnmt1=None) + DNMT1(h=1, sam= None) % H(dnmt1=1) | SAM(dnmt1=2) % DNMT1(h=1, sam=2) % H(dnmt1=1), kf2, kr2)
-Rule('DNMT1_is_methylated', DNMT1(h=1, sam=2) % SAM(dnmt1=2) % H(dnmt1=1) >> DNMT1(h=1,sam=None) % M(dnmt1=1) + SAH() , k3)
+Rule('DNMT1_is_methylated', DNMT1(h=1, sam=2) % SAM(dnmt1=2) % H(dnmt1=1) >> DNMT1(h=1,sam=None) % M(dnmt1=1) + SAH(), k3)
 Rule('DNMT1_diffuses_Upstream', DNMT1(h=1, sam=None) % M(dnmt1=1) + H(dnmt1=None) >> DNMT1(h=1, sam=None) % H(dnmt1=1) + M(dnmt1=None), kDif_U)
 Rule('DNMT1_diffuses_downstream', DNMT1(h=1, sam=None) % M(dnmt1=1) + H(dnmt1=None) >> DNMT1(h=1, sam=None) % H(dnmt1=1) + M(dnmt1=None), kDif_D)
 Rule('DNMT1_Unbinds_M', DNMT1(h=1, sam=None) % M(dnmt1=1) >> DNMT1(h=None, sam=None)+ M(dnmt1=None), koff)

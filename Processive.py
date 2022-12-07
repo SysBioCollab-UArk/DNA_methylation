@@ -1,5 +1,5 @@
 from pysb import *
-from pysb.simulator import ScipyOdeSimulator
+from pysb.simulator import ScipyOdeSimulator, BngSimulator
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -38,16 +38,38 @@ onto nearby CpGsites
 # Monomers
 Monomer('DNMT1', ['h', 'sam'])
 Monomer('SAM', ['dnmt1'])
-Monomer('H', ['dnmt1'])
-Monomer('M',['dnmt1'])
+# Monomer('H', ['dnmt1'])
+# Monomer('M',['dnmt1'])
 Monomer('SAH')
+Monomer('Nuc', ['state', 'l', 'r', 'dnmt1'], {'state': ['H', 'M']})
+Monomer('fivePrime', ['nuc'])
+Monomer('threePrime', ['nuc'])
+
+# Initial(fivePrime(nuc=0) %
+#         Nuc(state='H', l=0, r=1, dnmt1=None) %
+#         Nuc(state='H', l=1, r=2, dnmt1=None) %
+#         Nuc(state='H', l=2, r=3, dnmt1=None) %
+#         Nuc(state='H', l=3, r=4, dnmt1=None) %
+#         Nuc(state='H', l=4, r=5, dnmt1=None) %
+#         Nuc(state='H', l=5, r=6, dnmt1=None) %
+#         Nuc(state='H', l=6, r=7, dnmt1=None) %
+#         Nuc(state='H', l=7, r=8, dnmt1=None) %
+#         Nuc(state='H', l=8, r=9, dnmt1=None) %
+#         Nuc(state='H', l=9, r=10, dnmt1=None) %
+#         threePrime(nuc=10), Parameter('dna_0', 1))
+
+Initial(fivePrime(nuc=0) %
+        Nuc(state='H', l=0, r=1, dnmt1=None) %
+        Nuc(state='H', l=1, r=2, dnmt1=None) %
+        Nuc(state='H', l=2, r=3, dnmt1=None) %
+        threePrime(nuc=3), Parameter('dna_0', 1))
 
 # Initials Conditions
 Parameter('DNMT1_0', 100)
-Parameter('H_0', 200)
+# Parameter('H_0', 200)
 Parameter('SAM_0', 150)
 Initial(DNMT1(h=None, sam=None), DNMT1_0)
-Initial(H(dnmt1=None), H_0)
+# Initial(H(dnmt1=None), H_0)
 Initial(SAM(dnmt1=None), SAM_0)
 
 # Parameter
@@ -62,30 +84,46 @@ Parameter('koff', 100)
 
 # Rules
 
-Rule('DNMT1_binds_H', DNMT1(h=None, sam=None) + H(dnmt1=None) | DNMT1(h=1, sam=None) % H(dnmt1=1), kf1, kr1)
-Rule('SAM_binds_DNMT1_H', SAM(dnmt1=None) + DNMT1(h=1, sam= None) % H(dnmt1=1) | SAM(dnmt1=2) % DNMT1(h=1, sam=2) % H(dnmt1=1), kf2, kr2)
-Rule('DNMT1_is_methylated', DNMT1(h=1, sam=2) % SAM(dnmt1=2) % H(dnmt1=1) >> DNMT1(h=1,sam=None) % M(dnmt1=1) + SAH(), k3)
-Rule('DNMT1_diffuses_Upstream', DNMT1(h=1, sam=None) % M(dnmt1=1) + H(dnmt1=None) >> DNMT1(h=1, sam=None) % H(dnmt1=1) + M(dnmt1=None), kDif_U)
-Rule('DNMT1_diffuses_downstream', DNMT1(h=1, sam=None) % M(dnmt1=1) + H(dnmt1=None) >> DNMT1(h=1, sam=None) % H(dnmt1=1) + M(dnmt1=None), kDif_D)
-Rule('DNMT1_Unbinds_M', DNMT1(h=1, sam=None) % M(dnmt1=1) >> DNMT1(h=None, sam=None)+ M(dnmt1=None), koff)
+Rule('DNMT1_binds_H', DNMT1(h=None, sam=None) + Nuc(state='H', dnmt1=None) |
+     DNMT1(h=1, sam=None) % Nuc(state='H', dnmt1=1), kf1, kr1)
+
+Rule('SAM_binds_DNMT1_H', SAM(dnmt1=None) + DNMT1(h=1, sam=None) % Nuc(state='H', dnmt1=1) |
+     SAM(dnmt1=2) % DNMT1(h=1, sam=2) % Nuc(state='H', dnmt1=1), kf2, kr2)
+
+Rule('DNMT1_is_methylated', DNMT1(h=1, sam=2) % SAM(dnmt1=2) % Nuc(state='H', dnmt1=1) >>
+     DNMT1(h=1, sam=None) % Nuc(state='M', dnmt1=1) + SAH(), k3)
+
+Rule('DNMT1_diffuses_Upstream',
+     DNMT1(h=1, sam=None) % Nuc(state='M', dnmt1=1, l=2) % Nuc(state='H', dnmt1=None, r=2) >>
+     DNMT1(h=1, sam=None) % Nuc(state='M', dnmt1=None, l=2) % Nuc(state='H', dnmt1=1, r=2),
+     kDif_U)
+
+Rule('DNMT1_diffuses_downstream',
+     DNMT1(h=1, sam=None) % Nuc(state='M', dnmt1=1, r=2) % Nuc(state='H', dnmt1=None, l=2) >>
+     DNMT1(h=1, sam=None) % Nuc(state='M', dnmt1=None, r=2) % Nuc(state='H', dnmt1=1, l=2),
+     kDif_D)
+
+Rule('DNMT1_Unbinds_M', DNMT1(h=1, sam=None) % Nuc(state='M', dnmt1=1) >>
+     DNMT1(h=None, sam=None) + Nuc(state='M', dnmt1=None), koff)
 
 # Observables
-Observable('H_total', H())
-Observable('H_bound', H(dnmt1= ANY))
-Observable('M_total', M())
+Observable('H_total', Nuc(state='H'))
+Observable('H_bound', Nuc(state='H', dnmt1=ANY))
+Observable('M_total', Nuc(state='M'))
 Observable('DNMT1_unbound', DNMT1(h=None, sam=None))
+Observable('DNTM1_bound', DNMT1(h=ANY))
 Observable('SAM_total', SAM())
 
-#Actions
+# Actions
 tspan = np.linspace(0, 2, 100)
 sim =ScipyOdeSimulator(model, tspan, verbose=True)
 output = sim.run()
 
 for obs in model.observables:
     plt.plot(tspan, output.observables[obs.name], lw=2, label=obs.name)
-    plt.legend(loc=0)
-    plt.xlabel('time')
-    plt.ylabel('amount')
+plt.legend(loc=0)
+plt.xlabel('time')
+plt.ylabel('amount')
 
-    plt.tight_layout()
-    plt.show()
+plt.tight_layout()
+plt.show()
